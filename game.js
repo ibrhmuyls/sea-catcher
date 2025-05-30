@@ -5,11 +5,13 @@ const ctx = canvas.getContext("2d");
 const hook = {
   x: canvas.width / 2,
   y: 0,
-  speed: 8,
   width: 4,
   height: 20,
-  dropSpeed: 10,
+  angle: 0,
+  radius: 80,
+  isSwinging: true,
   isDropping: false,
+  dropSpeed: 10,
 };
 
 const items = [
@@ -22,6 +24,8 @@ const items = [
 
 let objects = [];
 let score = 0;
+let gameTime = 60;
+let gameInterval, spawnInterval, timerInterval;
 
 function spawnItem() {
   const item = items[Math.floor(Math.random() * items.length)];
@@ -37,15 +41,28 @@ function spawnItem() {
 function resetHook() {
   hook.y = 0;
   hook.isDropping = false;
+  hook.isSwinging = true;
 }
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw hook
+  // Hook swinging or dropping
+  let hx = hook.x;
+  let hy = hook.y;
+  if (hook.isSwinging && !hook.isDropping) {
+    hook.angle += 0.05;
+    hx = canvas.width / 2 + Math.sin(hook.angle) * hook.radius;
+    hook.x = hx;
+  } else if (hook.isDropping) {
+    hook.y += hook.dropSpeed;
+    if (hook.y > canvas.height) resetHook();
+  }
+
+  // Draw line and hook
   ctx.fillStyle = "black";
-  ctx.fillRect(hook.x, 0, hook.width, hook.y);
-  ctx.fillRect(hook.x - 10, hook.y, 24, hook.height);
+  ctx.fillRect(hx, 0, hook.width, hook.y);
+  ctx.fillRect(hx - 10, hook.y, 24, hook.height);
 
   // Draw objects
   for (const obj of objects) {
@@ -53,7 +70,7 @@ function draw() {
     ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
   }
 
-  // Draw score
+  // Score
   ctx.fillStyle = "black";
   ctx.font = "20px Arial";
   ctx.fillText(`Score: ${score}`, 10, 30);
@@ -61,11 +78,6 @@ function draw() {
 
 function update() {
   if (hook.isDropping) {
-    hook.y += hook.dropSpeed;
-    if (hook.y > canvas.height) {
-      resetHook();
-    }
-
     for (const obj of objects) {
       if (
         hook.x < obj.x + obj.width &&
@@ -85,18 +97,45 @@ function update() {
 function gameLoop() {
   update();
   draw();
-  requestAnimationFrame(gameLoop);
+  gameInterval = requestAnimationFrame(gameLoop);
+}
+
+function updateTimer() {
+  gameTime--;
+  document.getElementById("timer").textContent = `Time: ${gameTime}`;
+  if (gameTime <= 0) endGame();
+}
+
+function endGame() {
+  cancelAnimationFrame(gameInterval);
+  clearInterval(spawnInterval);
+  clearInterval(timerInterval);
+  document.getElementById("finalScore").textContent = score;
+  document.getElementById("gameOver").style.display = "block";
+}
+
+function restartGame() {
+  score = 0;
+  gameTime = 60;
+  hook.y = 0;
+  hook.isDropping = false;
+  hook.isSwinging = true;
+  objects = [];
+  document.getElementById("gameOver").style.display = "none";
+  document.getElementById("timer").textContent = `Time: 60`;
+  for (let i = 0; i < 5; i++) spawnItem();
+  timerInterval = setInterval(updateTimer, 1000);
+  spawnInterval = setInterval(() => spawnItem(), 3000);
+  gameLoop();
 }
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "ArrowLeft") {
-    hook.x -= hook.speed;
-  } else if (e.key === "ArrowRight") {
-    hook.x += hook.speed;
-  } else if (e.key === " ") {
-    if (!hook.isDropping) hook.isDropping = true;
+  if (e.key === " ") {
+    if (!hook.isDropping) {
+      hook.isSwinging = false;
+      hook.isDropping = true;
+    }
   }
 });
 
-for (let i = 0; i < 5; i++) spawnItem();
-gameLoop();
+restartGame();

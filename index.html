@@ -9,7 +9,14 @@
 </head>
 <body>
   <h1>🎣 Succinct Sea Catcher</h1>
+  <p id="timer">Time: 60</p>
   <canvas id="gameCanvas" width="480" height="640"></canvas>
+  <div id="gameOver" style="display:none;">
+    <h2>⏰ Time's up!</h2>
+    <p>Your score: <span id="finalScore"></span></p>
+    <input id="playerName" placeholder="Enter your name" />
+    <button onclick="restartGame()">Play Again</button>
+  </div>
   <script src="game.js"></script>
 </body>
 </html>
